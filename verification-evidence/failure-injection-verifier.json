@@ -1,0 +1,17 @@
+{
+  "run": "failure-injection",
+  "seed": 42,
+  "failure_scale": 1,
+  "callback_lateness_minutes": {"count": 71, "max": 3836.9, "p50": 10.5, "p90": 37.1},
+  "csv_accepted_attempts": 408,
+  "csv_rows": 200,
+  "exact_match": true,
+  "max_concurrency_seen": {"acme_insurance": 4, "zen_retail": 3},
+  "mismatch_count": 0,
+  "mismatches": [],
+  "provider_active_calls": 0,
+  "provider_calls_total": 408,
+  "provider_leads": 200,
+  "provider_violation_count": 0,
+  "tenant_limits": {"acme_insurance": 4, "zen_retail": 3}
+}

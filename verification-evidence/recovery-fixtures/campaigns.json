@@ -1,0 +1,42 @@
+{
+  "sim_start": "2026-11-12T17:30:00+05:30",
+  "timezone": "Asia/Kolkata",
+  "regulatory_window": {
+    "start": "09:00",
+    "end": "21:00"
+  },
+  "window_grace_seconds": 120,
+  "retry_policy": {
+    "no_answer_minutes": 60,
+    "busy_minutes": 60,
+    "failed_minutes": 15
+  },
+  "webhook_secret": "whsec_au_assignment_local",
+  "tenants": [
+    {
+      "tenant_id": "acme_insurance",
+      "max_concurrent_calls": 4
+    }
+  ],
+  "campaigns": [
+    {
+      "campaign_id": "c_acme_feedback",
+      "tenant_id": "acme_insurance",
+      "leads_file": "leads_recovery.csv",
+      "window": {
+        "start": "11:00",
+        "end": "20:30",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat",
+          "sun"
+        ]
+      },
+      "max_attempts": 3
+    }
+  ]
+}

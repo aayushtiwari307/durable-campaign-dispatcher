@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Local databases and generated run output
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+/final_state*.csv
+/verification-evidence/final_state*.csv
+/verification-evidence/*.log
+/verification-evidence/*.pid
+/docker-compose.yml.backup
+
+# Runtime output
+*.log
+*.tmp
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

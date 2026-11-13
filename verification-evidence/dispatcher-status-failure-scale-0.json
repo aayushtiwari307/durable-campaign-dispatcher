@@ -1,0 +1,27 @@
+{
+  "sim_now": "2026-11-18T10:54:26.527605+05:30",
+  "leads_by_state": {
+    "completed": 139,
+    "dnd_blocked": 1,
+    "exhausted": 60
+  },
+  "campaigns": {
+    "c_zen_winback": {
+      "exhausted": 21,
+      "completed": 49
+    },
+    "c_acme_renewals": {
+      "completed": 47,
+      "dnd_blocked": 1,
+      "exhausted": 22
+    },
+    "c_acme_feedback": {
+      "completed": 43,
+      "exhausted": 17
+    }
+  },
+  "active_calls_by_tenant": {},
+  "dispatcher_done": true,
+  "dispatcher_error": null,
+  "scheduler_lock_acquired": true
+}

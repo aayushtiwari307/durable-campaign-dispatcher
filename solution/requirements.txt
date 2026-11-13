@@ -1,0 +1,5 @@
+# Install the repository root requirements.txt first for the supplied mock provider.
+# Dispatcher-only dependencies:
+psycopg[binary,pool]>=3.2,<4
+cryptography>=42,<50
+python-dotenv>=1.0,<2

@@ -1,0 +1,22 @@
+{
+  "run": "dispatcher-process-kill-and-restart-smoke-test",
+  "provider_process_preserved": true,
+  "postgres_database_preserved": true,
+  "dispatcher_force_terminated_during_active_call": true,
+  "original_call_sid": "CA4b0366cc39d1434a8afd9d66",
+  "original_request_id": "au_579c47215b62072552fa79ba7fe40350",
+  "recovered_provider_result": {"status": "completed", "disposition": "interested"},
+  "database": {"lead_state": "completed", "accepted_attempts": 1, "attempt_state": "ended"},
+  "callback_lateness_minutes": {"count": 0, "max": null, "p50": null, "p90": null},
+  "csv_accepted_attempts": 1,
+  "csv_rows": 1,
+  "exact_match": true,
+  "max_concurrency_seen": {"acme_insurance": 1},
+  "mismatch_count": 0,
+  "mismatches": [],
+  "provider_active_calls": 0,
+  "provider_calls_total": 1,
+  "provider_leads": 1,
+  "provider_violation_count": 0,
+  "tenant_limits": {"acme_insurance": 4}
+}
