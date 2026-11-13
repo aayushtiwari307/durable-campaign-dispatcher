@@ -55,3 +55,23 @@ The required validation is:
 5. Review callback lateness and observed concurrency in `/admin/report`.
 
 A passing unit-test suite alone is not evidence that the external provider run, unseen-seed evaluation, or process-kill recovery has passed. Those must be confirmed by actual integration results before submission.
+
+## Validation actually performed
+
+The following results were obtained locally against the supplied mock provider and PostgreSQL. The detailed verifier summaries are checked in under `verification-evidence/`.
+
+| Check | Observed result |
+|---|---|
+| PostgreSQL-backed automated suite | 75 passed |
+| Python compilation | `python -m compileall -q solution` exited 0 |
+| Full clean provider run | 200 leads; 407 accepted attempts; 200 CSV rows; exact provider match; 0 mismatches; 0 provider violations; 0 active calls |
+| Full failure-injection run (seed 42, failure scale 1) | 200 leads; 408 accepted attempts; 200 CSV rows; exact provider match; 0 mismatches; 0 provider violations; 0 active calls |
+| One-lead process-kill/restart smoke test | Dispatcher was killed while the provider reported one active call; restart reconciled the same call; one accepted attempt; exact one-row CSV match; 0 provider violations; 0 active calls |
+
+Observed maximum tenant concurrency was 4 for `acme_insurance` and 3 for `zen_retail`, within the fixture limits.
+
+### Performance observation and verification boundary
+
+The failure-injection run reported callback lateness p50 **10.5 minutes**, p90 **37.1 minutes**, and max **3,836.9 minutes**. The maximum is a significant tail outlier and should be investigated as a scheduling-performance concern; it did not coincide with a provider rule violation in that run. The clean run's maximum callback lateness was **72.7 minutes**.
+
+The live process-kill test used the dedicated one-lead fixture. It demonstrates recovery of an in-flight provider call after one dispatcher termination, but it is not a repeated crash campaign across the full 200-lead workload. These results describe the specific local runs recorded here; they do not guarantee every unseen seed, arbitrary crash timing, or external grading environment.
