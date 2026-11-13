@@ -1,81 +1,119 @@
-# Agentic Universe: Junior SDE Take-Home (Data & Workflow)
+# Durable Campaign Dispatcher
 
-Thanks for your interest in Agentic Universe. We build AI voice agents for insurers, lenders and
-consumer brands across India and APAC. Our platform has three layers:
+A PostgreSQL-backed campaign dispatcher that schedules outbound calls through a mock telephony provider while enforcing calling windows, tenant concurrency, phone-level exclusivity, retries, callbacks, global DND, webhook integrity, and crash recovery.
 
-- **Data:** leads, call events, dispositions and the interaction ledger that every client report
-  is built on.
-- **Workflow:** campaigns, scheduling, dialling, retries and callbacks, all orchestrated durably.
-- **Application:** dashboards, consoles and APIs.
+This repository contains the implementation for the **Durable Campaign Dispatcher** workflow. The original assignment brief is preserved at [docs/ORIGINAL_ASSIGNMENT_README.md](docs/ORIGINAL_ASSIGNMENT_README.md).
 
-This take-home focuses on **data** and **workflow**. **Pick one assignment.** Don't do both.
+## Highlights
 
-| | Assignment | You'll mostly be doing |
-|---|---|---|
-| **A** | [Interaction Ledger & Reporting Pipeline](assignment-a-data/README.md) | Messy-data ingestion, schema design, idempotent pipelines, exact metrics |
-| **B** | [Durable Campaign Dispatcher](assignment-b-workflow/README.md) | State machines, idempotency, failure handling, scheduling under constraints |
+- **Durable state machine:** PostgreSQL persists lead state, call attempts, deterministic provider request IDs, and recovery information.
+- **Safe provider retries:** ambiguous timeouts and 504 responses are reconciled using the original request ID; accepted calls are not blindly re-submitted with a new identity.
+- **Scheduling constraints:** campaign and regulatory calling windows, callback/retry/fresh-lead priority, shared tenant concurrency, and one active call per phone.
+- **Global opt-out:** DND is enforced across campaigns using a keyed phone token.
+- **Webhook security:** raw-body HMAC-SHA256 verification, idempotent event processing, and recovery polling for lost webhooks.
+- **PII protection:** names and phone numbers are encrypted at rest; deterministic HMAC tokens support matching without indexing plaintext phone numbers.
+- **Operational visibility:** FastAPI health and status endpoints expose database health, progress, active calls, and scheduler errors.
 
-Both are judged on the same bar. Pick the one that excites you more.
+## Technology
 
-## Ground rules
+Python 3.11+, FastAPI, Uvicorn, PostgreSQL 16, Psycopg 3, httpx, pytest, Fernet encryption, and HMAC-SHA256.
 
-- **Time box:** plan for about **6–8 focused hours**. You have **72 hours** from when you receive
-  this. We know you have a life. If you run out of time, stop and tell us in `SUBMISSION.md`
-  what you'd do next. A well-explained partial solution beats a rushed complete one.
-- **Language:** Python 3.11+. Use any libraries you like; list them in `requirements.txt`.
-- **AI tools** (Claude, Cursor, Copilot, ChatGPT...) are **allowed**, as they would be on the
-  job. You must fill in [`AI_USAGE.md`](AI_USAGE.md) honestly. In the follow-up interview we'll
-  ask you to walk through your code and change it live. Submit only code you understand and can
-  defend.
-- **Ambiguity is intentional in places.** When the spec doesn't decide something, make a
-  reasonable call and write it down in `SUBMISSION.md`. Don't wait for an answer from us.
-- **Synthetic data only.** Everything here is generated. No real customer data is involved.
+## Quick start
 
-## Getting started
+The detailed Windows PowerShell and macOS/Linux instructions are in [solution/README.md](solution/README.md). The following is the short local setup from the repository root.
 
-```bash
-python -m venv .venv && source .venv/bin/activate
+### 1. Create an environment and install dependencies
+
+**Windows PowerShell**
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 pip install -r requirements.txt
-# then follow your chosen assignment's README
+pip install -r solution\requirements.txt
+docker compose up -d postgres
 ```
 
-`docker-compose.yml` starts a local Postgres if you want one (`docker compose up -d`). SQLite
-is equally acceptable.
+**macOS / Linux**
 
-## What to submit
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+pip install -r solution/requirements.txt
+docker compose up -d postgres
+```
 
-1. Push your work to a **private** GitHub or GitLab repository. Start from this repo and keep
-   its structure. Put your code in `solution/` (or a similar top-level folder) and keep the
-   original files unmodified.
-2. Your repo must include:
-   - `SUBMISSION.md`: fill in the template provided
-   - `AI_USAGE.md`: fill in the template provided
-   - Exact setup and run commands that work from a clean clone
-   - Tests, runnable with one command (for example `pytest`)
-3. Give read access to **`[[REVIEWER_HANDLES]]`** and email the repo link to
-   **`[[SUBMISSION_EMAIL]]`** before the deadline.
+Create a local `.env` with `DATABASE_URL` and a generated `PII_ENCRYPTION_KEY` as described in [solution/README.md](solution/README.md). Keep the key stable for a database across restarts. Never commit the populated `.env` file.
 
-Please **don't** publish your solution publicly, and **don't** commit generated data, `.env`
-files, or databases.
+### 2. Start the mock provider
 
-## What happens next
+In Terminal A, from the repository root:
 
-If your submission clears the bar, we'll schedule a **45-minute technical conversation**:
+```bash
+cd assignment-b-workflow
+python -m mock_telephony --failure-scale 0
+```
 
-- 15 min: you walk us through your design and the decisions in `SUBMISSION.md`
-- 20 min: we change a requirement and you extend your code live (AI tools allowed; screen
-  share)
-- 10 min: your questions for us
+The provider listens at `http://127.0.0.1:8099`. Use its default failure scale (or `--failure-scale 1`) to exercise injected provider failures.
 
-## What we look for
+### 3. Start the dispatcher
 
-| Signal | What good looks like |
-|---|---|
-| Correctness | It produces the right answer on data and seeds you haven't seen |
-| Robustness | It behaves sensibly when inputs are dirty, things fail, or it's run twice |
-| Design | Clear data and state model; you can explain why it's safe |
-| Code quality | Readable, organised, tested where it matters |
-| Communication | Honest about trade-offs, assumptions and what's missing |
-| Ownership | You made decisions instead of waiting to be told |
+In Terminal B, from the repository root:
 
-Good luck. We're looking forward to reading your work.
+```bash
+python solution/run.py --output final_state.csv
+```
+
+The dispatcher API listens at `http://127.0.0.1:8200`.
+
+- `GET /health` — API and database health.
+- `GET /status` — campaign progress, active attempts, scheduler status, and scheduler errors.
+
+The API process remains alive after dispatch completes so it can continue receiving webhooks. Completion is reported by `dispatcher_done: true` and `dispatcher_error: null` from `/status`.
+
+## Tests and verification
+
+Set `TEST_DATABASE_URL` to a disposable PostgreSQL database, then run from the repository root:
+
+```bash
+python -m pytest solution/tests -q --strict-config --strict-markers
+python -m compileall -q solution
+```
+
+To compare a completed run against the provider's authoritative lead state:
+
+```bash
+python solution/scripts/verify_provider_output.py --csv final_state.csv --fixtures assignment-b-workflow/fixtures/campaigns.json
+```
+
+The verifier checks exact CSV rows and attempts, provider violations, active calls, and observed tenant concurrency. See [verification-evidence/VERIFICATION_RESULTS.md](verification-evidence/VERIFICATION_RESULTS.md) for the actual locally observed automated, clean-run, failure-injection, and one-lead crash/restart smoke-test results.
+
+### Observed local validation
+
+| Scenario | Leads | Accepted attempts | CSV match | Provider violations |
+|---|---:|---:|---|---:|
+| Clean run | 200 | 407 | Exact | 0 |
+| Failure injection (seed 42) | 200 | 408 | Exact | 0 |
+| Dispatcher kill/restart smoke test | 1 | 1 | Exact | 0 |
+
+The failure-injection run had a callback-lateness maximum of **3,836.9 minutes** (p50 10.5 minutes; p90 37.1 minutes). This is documented as a performance tail outlier in [SUBMISSION.md](SUBMISSION.md) and should not be interpreted as a provider-rule violation. The crash/restart result is a focused one-lead smoke test, not a repeated full-workload crash campaign.
+
+## Repository guide
+
+- `solution/app/` — dispatcher API, scheduling, repository, provider client, webhook handling, and PII utilities.
+- `solution/migrations/` — PostgreSQL schema.
+- `solution/tests/` — automated tests.
+- `solution/scripts/` — provider-output verification.
+- `assignment-b-workflow/` — supplied fixtures and unchanged mock provider.
+- `verification-evidence/` — concise verification summaries and the one-lead recovery fixture.
+- `SUBMISSION.md` — state model, correctness decisions, measured validation, and known limitations.
+- `AI_USAGE.md` — AI assistance disclosure.
+
+## Security and data handling
+
+- Do not commit `.env`, generated database files, or real customer data.
+- The included data and mock provider are synthetic assignment fixtures.
+- Rotate local-only credentials before using any shared environment.
